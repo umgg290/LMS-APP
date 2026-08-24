@@ -3,7 +3,6 @@ import { AppContext } from '../../context/AppContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import Loading from '../../components/student/Loading';
-import { assets } from '../../assets/assets';
 
 const MyCourses = () => {
 
@@ -26,11 +25,6 @@ const MyCourses = () => {
     }
 
   }
-
-  const handleImageError = (event) => {
-    event.currentTarget.onerror = null;
-    event.currentTarget.src = assets.course_1_thumbnail;
-  };
 
   useEffect(() => {
     if (isEducator) {
@@ -56,7 +50,7 @@ const MyCourses = () => {
               {courses.map((course) => (
                 <tr key={course._id} className="border-b border-gray-500/20">
                   <td className="md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3 truncate">
-                    <img src={course.courseThumbnail || assets.course_1_thumbnail} onError={handleImageError} alt={`${course.courseTitle} thumbnail`} className="w-16 h-10 rounded object-cover" />
+                    <img src={course.courseThumbnail} alt="Course Image" className="w-16" />
                     <span className="truncate hidden md:block">{course.courseTitle}</span>
                   </td>
                   <td className="px-4 py-3">{currency} {Math.floor(course.enrolledStudents.length * (course.coursePrice - course.discount * course.coursePrice / 100))}</td>
