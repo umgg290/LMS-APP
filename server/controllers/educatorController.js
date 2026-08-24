@@ -27,37 +27,49 @@ export const updateRoleToEducator = async (req, res) => {
 
 // Add New Course
 export const addCourse = async (req, res) => {
-
     try {
-
-        const { courseData } = req.body
-
-        const imageFile = req.file
-
-        const educatorId = req.auth.userId
+        const { courseData } = req.body;
+        const imageFile = req.file;
+        const educatorId = req.auth.userId;
 
         if (!imageFile) {
-            return res.json({ success: false, message: 'Thumbnail Not Attached' })
+            return res.status(400).json({ success: false, message: 'Thumbnail Not Attached' });
         }
 
-        const parsedCourseData = await JSON.parse(courseData)
+        const parsedCourseData = JSON.parse(courseData);
+        const courseTitle = parsedCourseData.courseTitle?.trim();
 
-        parsedCourseData.educator = educatorId
+        if (!courseTitle) {
+            return res.status(400).json({ success: false, message: 'Course title is required' });
+        }
 
-        const newCourse = await Course.create(parsedCourseData)
+        const existingCourse = await Course.findOne({
+            educator: educatorId,
+            courseTitle,
+        }).collation({ locale: 'en', strength: 2 });
 
-        const imageUpload = await cloudinary.uploader.upload(imageFile.path)
+        if (existingCourse) {
+            return res.status(409).json({
+                success: false,
+                message: 'You already have a course with this title',
+            });
+        }
 
-        newCourse.courseThumbnail = imageUpload.secure_url
+        // Upload first so an incomplete course is never stored with a missing thumbnail.
+        const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
+            resource_type: 'image',
+        });
 
-        await newCourse.save()
+        await Course.create({
+            ...parsedCourseData,
+            courseTitle,
+            educator: educatorId,
+            courseThumbnail: imageUpload.secure_url,
+        });
 
-        res.json({ success: true, message: 'Course Added' })
-
+        res.json({ success: true, message: 'Course Added' });
     } catch (error) {
-
-        res.json({ success: false, message: error.message })
-
+        res.status(500).json({ success: false, message: error.message });
     }
 }
 
