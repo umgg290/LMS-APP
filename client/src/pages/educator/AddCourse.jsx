@@ -17,6 +17,8 @@ const AddCourse = () => {
   const [coursePrice, setCoursePrice] = useState(0)
   const [discount, setDiscount] = useState(0)
   const [image, setImage] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const imageInputRef = useRef(null)
   const [chapters, setChapters] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [currentChapterId, setCurrentChapterId] = useState(null);
@@ -91,48 +93,54 @@ const AddCourse = () => {
   };
 
   const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (isSubmitting) return;
+
+    if (!image) {
+      toast.error('Thumbnail Not Selected');
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-
-      e.preventDefault();
-
-      if (!image) {
-        toast.error('Thumbnail Not Selected')
-      }
-
       const courseData = {
         courseTitle,
         courseDescription: quillRef.current.root.innerHTML,
         coursePrice: Number(coursePrice),
         discount: Number(discount),
         courseContent: chapters,
-      }
+      };
 
-      const formData = new FormData()
-      formData.append('courseData', JSON.stringify(courseData))
-      formData.append('image', image)
+      const formData = new FormData();
+      formData.append('courseData', JSON.stringify(courseData));
+      formData.append('image', image);
 
-      const token = await getToken()
-
-      const { data } = await axios.post(backendUrl + '/api/educator/add-course', formData,
+      const token = await getToken();
+      const { data } = await axios.post(
+        backendUrl + '/api/educator/add-course',
+        formData,
         { headers: { Authorization: `Bearer ${token}` } }
-      )
+      );
 
       if (data.success) {
-        toast.success(data.message)
-        setCourseTitle('')
-        setCoursePrice(0)
-        setDiscount(0)
-        setImage(null)
-        setChapters([])
-        quillRef.current.root.innerHTML = ""
-      } else (
-        toast.error(data.message)
-      )
-
+        toast.success(data.message);
+        setCourseTitle('');
+        setCoursePrice(0);
+        setDiscount(0);
+        setImage(null);
+        setChapters([]);
+        imageInputRef.current.value = '';
+        quillRef.current.root.innerHTML = '';
+      } else {
+        toast.error(data.message);
+      }
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setIsSubmitting(false);
     }
-
   };
 
   useEffect(() => {
@@ -171,7 +179,7 @@ const AddCourse = () => {
             <p>Course Thumbnail</p>
             <label htmlFor='thumbnailImage' className='flex items-center gap-3'>
               <img src={assets.file_upload_icon} alt="" className='p-3 bg-blue-500 rounded' />
-              <input type="file" id='thumbnailImage' onChange={e => setImage(e.target.files[0])} accept="image/*" hidden />
+              <input ref={imageInputRef} type="file" id='thumbnailImage' onChange={e => setImage(e.target.files[0])} accept="image/*" hidden />
               <img className='max-h-10' src={image ? URL.createObjectURL(image) : ''} alt="" />
             </label>
           </div>
@@ -259,8 +267,8 @@ const AddCourse = () => {
           )}
         </div>
 
-        <button type="submit" className='bg-black text-white w-max py-2.5 px-8 rounded my-4'>
-          ADD
+        <button type="submit" disabled={isSubmitting} className='bg-black text-white w-max py-2.5 px-8 rounded my-4 disabled:cursor-not-allowed disabled:opacity-60'>
+          {isSubmitting ? 'ADDING…' : 'ADD'}
         </button>
       </form>
     </div>
