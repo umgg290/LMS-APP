@@ -56,6 +56,8 @@ export const addCourse = async (req, res) => {
 
     } catch (error) {
 
+        console.error('ADD COURSE ERROR:', error)
+
         res.json({ success: false, message: error.message })
 
     }
